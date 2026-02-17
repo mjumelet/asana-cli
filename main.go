@@ -40,7 +40,7 @@ func main() {
 
 	ctx := kong.Parse(&CLI,
 		kong.Name("asana"),
-		kong.Description("A command-line interface for Asana"),
+		kong.Description("A command-line interface for Asana (v"+version+")"),
 		kong.UsageOnError(),
 		kong.ConfigureHelp(kong.HelpOptions{
 			Compact: true,
