@@ -71,14 +71,33 @@ Run `asana configure` to see all configuration options and setup instructions.
 ### Tasks
 
 ```bash
+# List my tasks (shortcut)
+asana tasks list -m
+
 # List tasks assigned to you
 asana tasks list -a me
 
 # List tasks in a specific project
 asana tasks list -p PROJECT_GID
 
+# Filter by tag
+asana tasks list -t TAG_GID
+
+# Filter by due date
+asana tasks list -m -d today      # Due today
+asana tasks list -m -d tomorrow   # Due tomorrow
+asana tasks list -m -d week       # Due this week
+asana tasks list -m -d overdue    # Overdue tasks
+asana tasks list -m -d 2024-03-15 # Due on specific date
+
+# Combine filters
+asana tasks list -p PROJECT_GID -d week -s modified_at
+
+# Sort options: due_date (default), created_at, modified_at
+asana tasks list -m -s created_at
+
 # Include completed tasks
-asana tasks list -a me --all
+asana tasks list -m --all
 
 # Search for tasks
 asana tasks search "bug fix"
@@ -92,6 +111,19 @@ asana tasks comment TASK_GID "This is done!"
 # Add an HTML comment
 asana tasks comment TASK_GID "<strong>Done!</strong> See <a href='https://example.com'>results</a>" --html
 ```
+
+### Task Filtering Options
+
+| Flag | Description |
+|------|-------------|
+| `-m, --mine` | Show only tasks assigned to me |
+| `-p, --project` | Filter by project GID |
+| `-a, --assignee` | Filter by assignee GID (or `me`) |
+| `-t, --tag` | Filter by tag GID |
+| `-d, --due` | Filter by due date: `today`, `tomorrow`, `week`, `overdue`, or `YYYY-MM-DD` |
+| `-s, --sort` | Sort by: `due_date`, `created_at`, `modified_at` |
+| `-l, --limit` | Maximum number of results (default: 25) |
+| `--all` | Include completed tasks |
 
 ### Projects
 

@@ -17,15 +17,40 @@ type TasksCmd struct {
 }
 
 type TasksListCmd struct {
-	Project  string `short:"p" help:"Filter by project GID"`
-	Assignee string `short:"a" help:"Filter by assignee (use 'me' for yourself)"`
-	All      bool   `help:"Include completed tasks"`
-	Limit    int    `short:"l" default:"25" help:"Maximum number of tasks to return"`
-	JSON     bool   `short:"j" help:"Output as JSON"`
+	// Shortcut flags
+	Mine bool `short:"m" help:"Show only tasks assigned to me (shortcut for -a me)"`
+
+	// Filter flags
+	Project  string `short:"p" help:"Filter by project GID or name"`
+	Assignee string `short:"a" help:"Filter by assignee GID (use 'me' for yourself)"`
+	Tag      string `short:"t" help:"Filter by tag GID"`
+	Due      string `short:"d" help:"Filter by due date: today, tomorrow, week, overdue, or YYYY-MM-DD"`
+
+	// Display flags
+	All   bool `help:"Include completed tasks"`
+	Limit int  `short:"l" default:"25" help:"Maximum number of tasks to return"`
+	Sort  string `short:"s" default:"due_date" help:"Sort by: due_date, created_at, modified_at"`
+	JSON  bool `short:"j" help:"Output as JSON"`
 }
 
 func (c *TasksListCmd) Run(client *api.Client) error {
-	tasks, err := client.ListTasks(c.Project, c.Assignee, c.All, c.Limit)
+	// Handle --mine shortcut
+	assignee := c.Assignee
+	if c.Mine {
+		assignee = "me"
+	}
+
+	opts := api.TaskListOptions{
+		Project:       c.Project,
+		Assignee:      assignee,
+		Tag:           c.Tag,
+		Due:           c.Due,
+		IncludeCompleted: c.All,
+		Limit:         c.Limit,
+		SortBy:        c.Sort,
+	}
+
+	tasks, err := client.ListTasks(opts)
 	if err != nil {
 		return err
 	}

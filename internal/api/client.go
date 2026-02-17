@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/mauricejumelet/asana-cli/internal/config"
 )
@@ -145,33 +146,66 @@ type Page struct {
 	URI    string `json:"uri"`
 }
 
-// ListTasks returns tasks filtered by the given parameters
-func (c *Client) ListTasks(projectGID, assignee string, completed bool, limit int) ([]Task, error) {
+// TaskListOptions contains all filtering options for listing tasks
+type TaskListOptions struct {
+	Project          string // Project GID
+	Assignee         string // Assignee GID or "me"
+	Tag              string // Tag GID
+	Due              string // Due filter: today, tomorrow, week, overdue, or YYYY-MM-DD
+	IncludeCompleted bool   // Include completed tasks
+	Limit            int    // Maximum results
+	SortBy           string // Sort field: due_date, created_at, modified_at
+}
+
+// ListTasks returns tasks filtered by the given options
+func (c *Client) ListTasks(opts TaskListOptions) ([]Task, error) {
+	// Use the search API for advanced filtering
 	params := url.Values{}
 
-	if projectGID != "" {
-		params.Set("project", projectGID)
-	} else if assignee != "" {
-		params.Set("assignee", assignee)
-		params.Set("workspace", c.workspace)
-	} else {
-		// Default: search in workspace
-		return c.SearchTasks("", limit)
+	// Project filter
+	if opts.Project != "" {
+		params.Set("projects.any", opts.Project)
 	}
 
-	if !completed {
-		params.Set("completed_since", "now")
+	// Assignee filter
+	if opts.Assignee != "" {
+		params.Set("assignee.any", opts.Assignee)
 	}
 
-	if limit > 0 {
-		params.Set("limit", fmt.Sprintf("%d", limit))
+	// Tag filter
+	if opts.Tag != "" {
+		params.Set("tags.any", opts.Tag)
+	}
+
+	// Due date filter
+	if opts.Due != "" {
+		c.applyDueFilter(params, opts.Due)
+	}
+
+	// Completed filter
+	if !opts.IncludeCompleted {
+		params.Set("completed", "false")
+	}
+
+	// Limit
+	if opts.Limit > 0 {
+		params.Set("limit", fmt.Sprintf("%d", opts.Limit))
 	} else {
 		params.Set("limit", "100")
 	}
 
-	params.Set("opt_fields", "gid,name,completed,due_on,assignee,assignee.name,projects,projects.name,permalink_url")
+	// Sort
+	if opts.SortBy != "" {
+		params.Set("sort_by", opts.SortBy)
+		params.Set("sort_ascending", "true")
+	}
 
-	endpoint := "/tasks?" + params.Encode()
+	// Exclude subtasks for cleaner output
+	params.Set("is_subtask", "false")
+
+	params.Set("opt_fields", "gid,name,completed,due_on,assignee,assignee.name,projects,projects.name,tags,tags.name,permalink_url")
+
+	endpoint := fmt.Sprintf("/workspaces/%s/tasks/search?%s", c.workspace, params.Encode())
 	body, err := c.doRequest("GET", endpoint, nil)
 	if err != nil {
 		return nil, err
@@ -183,6 +217,28 @@ func (c *Client) ListTasks(projectGID, assignee string, completed bool, limit in
 	}
 
 	return resp.Data, nil
+}
+
+// applyDueFilter adds due date parameters based on the filter string
+func (c *Client) applyDueFilter(params url.Values, due string) {
+	today := time.Now().Format("2006-01-02")
+	tomorrow := time.Now().AddDate(0, 0, 1).Format("2006-01-02")
+	weekEnd := time.Now().AddDate(0, 0, 7).Format("2006-01-02")
+
+	switch due {
+	case "today":
+		params.Set("due_on", today)
+	case "tomorrow":
+		params.Set("due_on", tomorrow)
+	case "week":
+		params.Set("due_on.before", weekEnd)
+		params.Set("due_on.after", today)
+	case "overdue":
+		params.Set("due_on.before", today)
+	default:
+		// Assume it's a date in YYYY-MM-DD format
+		params.Set("due_on", due)
+	}
 }
 
 // SearchTasks searches for tasks in the workspace
