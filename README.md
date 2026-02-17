@@ -112,6 +112,9 @@ asana tasks search "bug fix"
 # Get task details
 asana tasks get TASK_GID
 
+# Get task details with comments and activity
+asana tasks get TASK_GID --comments
+
 # Add a comment
 asana tasks comment TASK_GID "This is done!"
 
