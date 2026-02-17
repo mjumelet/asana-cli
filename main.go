@@ -10,22 +10,16 @@ import (
 	"github.com/mauricejumelet/asana-cli/internal/config"
 )
 
+var version = "1.0.0"
+
 var CLI struct {
 	// Global flags
 	Config string `short:"c" help:"Path to config file (.env format)" type:"path"`
 
 	// Commands
-	Tasks    cmd.TasksCmd    `cmd:"" help:"Manage tasks"`
-	Projects cmd.ProjectsCmd `cmd:"" help:"Manage projects"`
-	Version  VersionCmd      `cmd:"" help:"Show version information"`
-	Configure  ConfigureCmd    `cmd:"" help:"Show configuration help"`
-}
-
-type VersionCmd struct{}
-
-func (v *VersionCmd) Run() error {
-	fmt.Println("asana-cli v1.0.0")
-	return nil
+	Tasks     cmd.TasksCmd    `cmd:"" help:"Manage tasks"`
+	Projects  cmd.ProjectsCmd `cmd:"" help:"Manage projects"`
+	Configure ConfigureCmd    `cmd:"" help:"Show configuration help"`
 }
 
 type ConfigureCmd struct{}
@@ -36,6 +30,14 @@ func (c *ConfigureCmd) Run() error {
 }
 
 func main() {
+	// Handle version flag early
+	for _, arg := range os.Args[1:] {
+		if arg == "-v" || arg == "--version" {
+			fmt.Printf("asana-cli v%s\n", version)
+			return
+		}
+	}
+
 	ctx := kong.Parse(&CLI,
 		kong.Name("asana"),
 		kong.Description("A command-line interface for Asana"),
@@ -47,7 +49,7 @@ func main() {
 
 	// Commands that don't need the API client
 	switch ctx.Command() {
-	case "version", "configure":
+	case "configure":
 		err := ctx.Run()
 		ctx.FatalIfErrorf(err)
 		return
