@@ -375,3 +375,238 @@ func (c *Client) ListProjects(archived bool, limit int) ([]Project, error) {
 
 	return resp.Data, nil
 }
+
+// CreateTaskOptions contains options for creating a new task
+type CreateTaskOptions struct {
+	Name      string
+	Notes     string
+	Assignee  string
+	DueOn     string
+	Projects  []string
+	Tags      []string
+	Parent    string // For subtasks
+}
+
+// CreateTask creates a new task in the workspace
+func (c *Client) CreateTask(opts CreateTaskOptions) (*Task, error) {
+	data := map[string]interface{}{
+		"name": opts.Name,
+	}
+
+	if opts.Notes != "" {
+		data["notes"] = opts.Notes
+	}
+	if opts.Assignee != "" {
+		data["assignee"] = opts.Assignee
+	}
+	if opts.DueOn != "" {
+		data["due_on"] = opts.DueOn
+	}
+	if len(opts.Projects) > 0 {
+		data["projects"] = opts.Projects
+	}
+	if len(opts.Tags) > 0 {
+		data["tags"] = opts.Tags
+	}
+	if opts.Parent != "" {
+		data["parent"] = opts.Parent
+	}
+
+	// If no project specified and not a subtask, we need workspace
+	if len(opts.Projects) == 0 && opts.Parent == "" {
+		data["workspace"] = c.workspace
+	}
+
+	payload := map[string]interface{}{"data": data}
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+
+	body, err := c.doRequest("POST", "/tasks", strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var resp TaskResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return &resp.Data, nil
+}
+
+// UpdateTaskOptions contains options for updating a task
+type UpdateTaskOptions struct {
+	Name      *string
+	Notes     *string
+	Assignee  *string
+	DueOn     *string
+	Completed *bool
+}
+
+// UpdateTask updates an existing task
+func (c *Client) UpdateTask(taskGID string, opts UpdateTaskOptions) (*Task, error) {
+	data := map[string]interface{}{}
+
+	if opts.Name != nil {
+		data["name"] = *opts.Name
+	}
+	if opts.Notes != nil {
+		data["notes"] = *opts.Notes
+	}
+	if opts.Assignee != nil {
+		data["assignee"] = *opts.Assignee
+	}
+	if opts.DueOn != nil {
+		data["due_on"] = *opts.DueOn
+	}
+	if opts.Completed != nil {
+		data["completed"] = *opts.Completed
+	}
+
+	payload := map[string]interface{}{"data": data}
+	jsonBody, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("marshaling request: %w", err)
+	}
+
+	endpoint := fmt.Sprintf("/tasks/%s", taskGID)
+	body, err := c.doRequest("PUT", endpoint, strings.NewReader(string(jsonBody)))
+	if err != nil {
+		return nil, err
+	}
+
+	var resp TaskResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return &resp.Data, nil
+}
+
+// CompleteTask marks a task as completed
+func (c *Client) CompleteTask(taskGID string) (*Task, error) {
+	completed := true
+	return c.UpdateTask(taskGID, UpdateTaskOptions{Completed: &completed})
+}
+
+// ReopenTask marks a task as not completed
+func (c *Client) ReopenTask(taskGID string) (*Task, error) {
+	completed := false
+	return c.UpdateTask(taskGID, UpdateTaskOptions{Completed: &completed})
+}
+
+// DeleteTask deletes a task
+func (c *Client) DeleteTask(taskGID string) error {
+	endpoint := fmt.Sprintf("/tasks/%s", taskGID)
+	_, err := c.doRequest("DELETE", endpoint, nil)
+	return err
+}
+
+// UsersResponse represents the API response for users
+type UsersResponse struct {
+	Data []User `json:"data"`
+}
+
+// UserResponse represents the API response for a single user
+type UserResponse struct {
+	Data User `json:"data"`
+}
+
+// ListUsers returns all users in the workspace
+func (c *Client) ListUsers() ([]User, error) {
+	params := url.Values{}
+	params.Set("opt_fields", "gid,name,email")
+
+	endpoint := fmt.Sprintf("/workspaces/%s/users?%s", c.workspace, params.Encode())
+	body, err := c.doRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp UsersResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
+// GetMe returns the current authenticated user
+func (c *Client) GetMe() (*User, error) {
+	params := url.Values{}
+	params.Set("opt_fields", "gid,name,email")
+
+	endpoint := "/users/me?" + params.Encode()
+	body, err := c.doRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp UserResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return &resp.Data, nil
+}
+
+// TaskSummary represents task counts for summary reporting
+type TaskSummary struct {
+	TotalTasks     int
+	CompletedTasks int
+	OpenTasks      int
+	OverdueTasks   int
+	ByAssignee     map[string]int
+	Unassigned     int
+}
+
+// GetTaskSummary returns a summary of tasks in the workspace
+func (c *Client) GetTaskSummary(projectGID string) (*TaskSummary, error) {
+	params := url.Values{}
+	if projectGID != "" {
+		params.Set("projects.any", projectGID)
+	}
+	params.Set("limit", "100")
+	params.Set("opt_fields", "gid,completed,due_on,assignee,assignee.name")
+
+	endpoint := fmt.Sprintf("/workspaces/%s/tasks/search?%s", c.workspace, params.Encode())
+	body, err := c.doRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp TasksResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	summary := &TaskSummary{
+		ByAssignee: make(map[string]int),
+	}
+
+	today := time.Now().Format("2006-01-02")
+
+	for _, task := range resp.Data {
+		summary.TotalTasks++
+
+		if task.Completed {
+			summary.CompletedTasks++
+		} else {
+			summary.OpenTasks++
+
+			if task.DueOn != "" && task.DueOn < today {
+				summary.OverdueTasks++
+			}
+		}
+
+		if task.Assignee != nil {
+			summary.ByAssignee[task.Assignee.Name]++
+		} else {
+			summary.Unassigned++
+		}
+	}
+
+	return summary, nil
+}

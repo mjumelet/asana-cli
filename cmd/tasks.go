@@ -10,10 +10,15 @@ import (
 )
 
 type TasksCmd struct {
-	List    TasksListCmd    `cmd:"" help:"List tasks"`
-	Get     TasksGetCmd     `cmd:"" help:"Get a task by ID"`
-	Comment TasksCommentCmd `cmd:"" help:"Add a comment to a task"`
-	Search  TasksSearchCmd  `cmd:"" help:"Search for tasks"`
+	List     TasksListCmd     `cmd:"" help:"List tasks"`
+	Get      TasksGetCmd      `cmd:"" help:"Get a task by ID"`
+	Create   TasksCreateCmd   `cmd:"" help:"Create a new task"`
+	Complete TasksCompleteCmd `cmd:"" help:"Mark a task as complete"`
+	Reopen   TasksReopenCmd   `cmd:"" help:"Reopen a completed task"`
+	Update   TasksUpdateCmd   `cmd:"" help:"Update a task"`
+	Delete   TasksDeleteCmd   `cmd:"" help:"Delete a task"`
+	Comment  TasksCommentCmd  `cmd:"" help:"Add a comment to a task"`
+	Search   TasksSearchCmd   `cmd:"" help:"Search for tasks"`
 }
 
 type TasksListCmd struct {
@@ -276,4 +281,140 @@ func truncate(s string, maxLen int) string {
 		return s
 	}
 	return s[:maxLen-3] + "..."
+}
+
+// TasksCreateCmd creates a new task
+type TasksCreateCmd struct {
+	Name     string   `arg:"" help:"Task name"`
+	Notes    string   `short:"n" help:"Task description"`
+	Assignee string   `short:"a" help:"Assignee GID or 'me'"`
+	Due      string   `short:"d" help:"Due date (YYYY-MM-DD)"`
+	Project  string   `short:"p" help:"Project GID to add task to"`
+	JSON     bool     `short:"j" help:"Output as JSON"`
+}
+
+func (c *TasksCreateCmd) Run(client *api.Client) error {
+	opts := api.CreateTaskOptions{
+		Name:     c.Name,
+		Notes:    c.Notes,
+		Assignee: c.Assignee,
+		DueOn:    c.Due,
+	}
+
+	if c.Project != "" {
+		opts.Projects = []string{c.Project}
+	}
+
+	task, err := client.CreateTask(opts)
+	if err != nil {
+		return err
+	}
+
+	if c.JSON {
+		return printJSON(task)
+	}
+
+	fmt.Printf("Task created successfully!\n")
+	fmt.Printf("GID: %s\n", task.GID)
+	fmt.Printf("Name: %s\n", task.Name)
+	if task.Permalink != "" {
+		fmt.Printf("URL: %s\n", task.Permalink)
+	}
+
+	return nil
+}
+
+// TasksCompleteCmd marks a task as complete
+type TasksCompleteCmd struct {
+	TaskGID string `arg:"" help:"Task GID to complete"`
+}
+
+func (c *TasksCompleteCmd) Run(client *api.Client) error {
+	task, err := client.CompleteTask(c.TaskGID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Task completed: %s\n", task.Name)
+	return nil
+}
+
+// TasksReopenCmd reopens a completed task
+type TasksReopenCmd struct {
+	TaskGID string `arg:"" help:"Task GID to reopen"`
+}
+
+func (c *TasksReopenCmd) Run(client *api.Client) error {
+	task, err := client.ReopenTask(c.TaskGID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Task reopened: %s\n", task.Name)
+	return nil
+}
+
+// TasksUpdateCmd updates an existing task
+type TasksUpdateCmd struct {
+	TaskGID  string `arg:"" help:"Task GID to update"`
+	Name     string `short:"n" help:"New task name"`
+	Notes    string `help:"New task description"`
+	Assignee string `short:"a" help:"New assignee GID or 'me'"`
+	Due      string `short:"d" help:"New due date (YYYY-MM-DD)"`
+	JSON     bool   `short:"j" help:"Output as JSON"`
+}
+
+func (c *TasksUpdateCmd) Run(client *api.Client) error {
+	opts := api.UpdateTaskOptions{}
+
+	if c.Name != "" {
+		opts.Name = &c.Name
+	}
+	if c.Notes != "" {
+		opts.Notes = &c.Notes
+	}
+	if c.Assignee != "" {
+		opts.Assignee = &c.Assignee
+	}
+	if c.Due != "" {
+		opts.DueOn = &c.Due
+	}
+
+	task, err := client.UpdateTask(c.TaskGID, opts)
+	if err != nil {
+		return err
+	}
+
+	if c.JSON {
+		return printJSON(task)
+	}
+
+	fmt.Printf("Task updated: %s\n", task.Name)
+	return nil
+}
+
+// TasksDeleteCmd deletes a task
+type TasksDeleteCmd struct {
+	TaskGID string `arg:"" help:"Task GID to delete"`
+	Force   bool   `short:"f" help:"Skip confirmation"`
+}
+
+func (c *TasksDeleteCmd) Run(client *api.Client) error {
+	if !c.Force {
+		fmt.Printf("Are you sure you want to delete task %s? [y/N] ", c.TaskGID)
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("Cancelled.")
+			return nil
+		}
+	}
+
+	err := client.DeleteTask(c.TaskGID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Task %s deleted.\n", c.TaskGID)
+	return nil
 }

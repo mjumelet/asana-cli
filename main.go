@@ -19,6 +19,8 @@ var CLI struct {
 	// Commands
 	Tasks     cmd.TasksCmd    `cmd:"" help:"Manage tasks"`
 	Projects  cmd.ProjectsCmd `cmd:"" help:"Manage projects"`
+	Users     cmd.UsersCmd    `cmd:"" help:"Manage users"`
+	Summary   cmd.SummaryCmd  `cmd:"" help:"Show task summary and statistics"`
 	Configure ConfigureCmd    `cmd:"" help:"Show configuration help"`
 }
 

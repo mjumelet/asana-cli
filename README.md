@@ -135,6 +135,29 @@ asana tasks comment TASK_GID "<strong>Done!</strong> See <a href='https://exampl
 | `-l, --limit` | Maximum number of results (default: 25) |
 | `--all` | Include completed tasks |
 
+### Task Management
+
+```bash
+# Create a new task
+asana tasks create "Fix login bug" -a me -d 2024-03-20 -p PROJECT_GID
+
+# Create task with description
+asana tasks create "Review PR" -n "Please review the authentication changes" -a me
+
+# Mark task as complete
+asana tasks complete TASK_GID
+
+# Reopen a completed task
+asana tasks reopen TASK_GID
+
+# Update a task
+asana tasks update TASK_GID -n "Updated title" -a USER_GID -d 2024-03-25
+
+# Delete a task
+asana tasks delete TASK_GID
+asana tasks delete TASK_GID -f  # Skip confirmation
+```
+
 ### Projects
 
 ```bash
@@ -146,6 +169,29 @@ asana projects list -a
 
 # Limit results
 asana projects list -l 10
+```
+
+### Users
+
+```bash
+# List all users in the workspace
+asana users list
+
+# Get current user info
+asana users me
+```
+
+### Summary & Reporting
+
+```bash
+# Get task summary for the workspace
+asana summary
+
+# Get summary for a specific project
+asana summary -p PROJECT_GID
+
+# Output as JSON for processing
+asana summary -j
 ```
 
 ### Output Formats
@@ -178,11 +224,19 @@ asana tasks list --help
 |---------|-------------|
 | `tasks list` | List tasks with optional filters |
 | `tasks get <GID>` | Get detailed task information |
+| `tasks create <name>` | Create a new task |
+| `tasks complete <GID>` | Mark a task as complete |
+| `tasks reopen <GID>` | Reopen a completed task |
+| `tasks update <GID>` | Update task details |
+| `tasks delete <GID>` | Delete a task |
 | `tasks search <query>` | Search for tasks in your workspace |
 | `tasks comment <GID> <message>` | Add a comment to a task |
 | `projects list` | List projects in the workspace |
+| `users list` | List workspace users |
+| `users me` | Show current user |
+| `summary` | Show task statistics |
 | `configure` | Show configuration help |
-| `version` | Show version information |
+| `-v, --version` | Show version information |
 
 ## HTML Comments
 
