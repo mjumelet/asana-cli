@@ -93,8 +93,9 @@ func (c *TasksListCmd) Run(client *api.Client) error {
 }
 
 type TasksGetCmd struct {
-	TaskGID string `arg:"" help:"Task GID to retrieve"`
-	JSON    bool   `short:"j" help:"Output as JSON"`
+	TaskGID  string `arg:"" help:"Task GID to retrieve"`
+	Comments bool   `help:"Include comments and activity"`
+	JSON     bool   `short:"j" help:"Output as JSON"`
 }
 
 func (c *TasksGetCmd) Run(client *api.Client) error {
@@ -103,7 +104,22 @@ func (c *TasksGetCmd) Run(client *api.Client) error {
 		return err
 	}
 
+	// Fetch comments if requested
+	var stories []api.Story
+	if c.Comments {
+		stories, err = client.GetTaskStories(c.TaskGID)
+		if err != nil {
+			return err
+		}
+	}
+
 	if c.JSON {
+		if c.Comments {
+			return printJSON(map[string]interface{}{
+				"task":     task,
+				"comments": stories,
+			})
+		}
 		return printJSON(task)
 	}
 
@@ -148,6 +164,27 @@ func (c *TasksGetCmd) Run(client *api.Client) error {
 
 	if task.Notes != "" {
 		fmt.Printf("\nDescription:\n%s\n", task.Notes)
+	}
+
+	// Display comments/activity
+	if c.Comments && len(stories) > 0 {
+		fmt.Printf("\nComments & Activity (%d):\n", len(stories))
+		fmt.Println(strings.Repeat("-", 40))
+		for _, story := range stories {
+			author := "Unknown"
+			if story.CreatedBy != nil {
+				author = story.CreatedBy.Name
+			}
+			timestamp := story.CreatedAt
+			if len(timestamp) > 10 {
+				timestamp = timestamp[:10]
+			}
+			fmt.Printf("[%s] %s\n", timestamp, author)
+			if story.Text != "" {
+				fmt.Printf("  %s\n", story.Text)
+			}
+			fmt.Println()
+		}
 	}
 
 	return nil

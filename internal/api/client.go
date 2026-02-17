@@ -140,6 +140,10 @@ type StoryResponse struct {
 	Data Story `json:"data"`
 }
 
+type StoriesResponse struct {
+	Data []Story `json:"data"`
+}
+
 type Page struct {
 	Offset string `json:"offset"`
 	Path   string `json:"path"`
@@ -324,6 +328,25 @@ func (c *Client) AddComment(taskGID, comment string, isHTML bool) (*Story, error
 	}
 
 	return &resp.Data, nil
+}
+
+// GetTaskStories returns all stories (comments and activity) for a task
+func (c *Client) GetTaskStories(taskGID string) ([]Story, error) {
+	params := url.Values{}
+	params.Set("opt_fields", "gid,created_at,created_by,created_by.name,text,html_text,type,resource_subtype")
+
+	endpoint := fmt.Sprintf("/tasks/%s/stories?%s", taskGID, params.Encode())
+	body, err := c.doRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp StoriesResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
 }
 
 // ListProjects returns projects in the workspace

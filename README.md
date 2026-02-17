@@ -16,11 +16,18 @@ asana-cli provides a simple way to interact with Asana from your terminal. List 
 
 ## Installation
 
+### Homebrew (macOS/Linux)
+
+```bash
+brew tap mjumelet/tap
+brew install asana-cli
+```
+
 ### From Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/mauricejumelet/asana-cli.git
+git clone https://github.com/mjumelet/asana-cli.git
 cd asana-cli
 
 # Build
@@ -32,7 +39,7 @@ mv asana /usr/local/bin/
 
 ### Requirements
 
-- Go 1.21 or later
+- Go 1.21 or later (for building from source)
 
 ## Configuration
 
