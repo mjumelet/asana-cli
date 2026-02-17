@@ -567,6 +567,9 @@ func (c *Client) GetTaskSummary(projectGID string) (*TaskSummary, error) {
 	params := url.Values{}
 	if projectGID != "" {
 		params.Set("projects.any", projectGID)
+	} else {
+		// Search API requires at least one filter - use modified in last year as broad filter
+		params.Set("modified_on.after", time.Now().AddDate(-1, 0, 0).Format("2006-01-02"))
 	}
 	params.Set("limit", "100")
 	params.Set("opt_fields", "gid,completed,due_on,assignee,assignee.name")
