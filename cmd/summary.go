@@ -32,6 +32,10 @@ func (c *SummaryCmd) Run(client *api.Client) error {
 	fmt.Printf("Overdue Tasks:   %d\n", summary.OverdueTasks)
 	fmt.Printf("Unassigned:      %d\n", summary.Unassigned)
 
+	if summary.TotalTasks >= 100 {
+		fmt.Println("\n(Note: Results limited to 100 tasks)")
+	}
+
 	if len(summary.ByAssignee) > 0 {
 		fmt.Println("\nTasks by Assignee")
 		fmt.Println("-----------------")

@@ -33,7 +33,7 @@ type TasksListCmd struct {
 
 	// Display flags
 	All   bool `help:"Include completed tasks"`
-	Limit int  `short:"l" default:"25" help:"Maximum number of tasks to return"`
+	Limit int  `short:"l" default:"100" help:"Maximum number of tasks to return"`
 	Sort  string `short:"s" default:"due_date" help:"Sort by: due_date, created_at, modified_at"`
 	JSON  bool `short:"j" help:"Output as JSON"`
 }
@@ -94,6 +94,11 @@ func (c *TasksListCmd) Run(client *api.Client) error {
 	}
 
 	w.Flush()
+
+	if len(tasks) >= c.Limit {
+		fmt.Printf("\n(Showing %d tasks, use -l to increase limit)\n", c.Limit)
+	}
+
 	return nil
 }
 
@@ -222,7 +227,7 @@ func (c *TasksCommentCmd) Run(client *api.Client) error {
 
 type TasksSearchCmd struct {
 	Query string `arg:"" help:"Search query"`
-	Limit int    `short:"l" default:"25" help:"Maximum number of tasks to return"`
+	Limit int    `short:"l" default:"100" help:"Maximum number of tasks to return"`
 	JSON  bool   `short:"j" help:"Output as JSON"`
 }
 
@@ -266,6 +271,11 @@ func (c *TasksSearchCmd) Run(client *api.Client) error {
 	}
 
 	w.Flush()
+
+	if len(tasks) >= c.Limit {
+		fmt.Printf("\n(Showing %d tasks, use -l to increase limit)\n", c.Limit)
+	}
+
 	return nil
 }
 
