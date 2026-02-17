@@ -24,7 +24,7 @@ var CLI struct {
 type VersionCmd struct{}
 
 func (v *VersionCmd) Run() error {
-	fmt.Println("asana-cli v0.1.0")
+	fmt.Println("asana-cli v1.0.0")
 	return nil
 }
 
