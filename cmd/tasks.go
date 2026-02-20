@@ -17,8 +17,9 @@ type TasksCmd struct {
 	Reopen   TasksReopenCmd   `cmd:"" help:"Reopen a completed task"`
 	Update   TasksUpdateCmd   `cmd:"" help:"Update a task"`
 	Delete   TasksDeleteCmd   `cmd:"" help:"Delete a task"`
-	Comment  TasksCommentCmd  `cmd:"" help:"Add a comment to a task"`
-	Search   TasksSearchCmd   `cmd:"" help:"Search for tasks"`
+	Comment   TasksCommentCmd   `cmd:"" help:"Add a comment to a task"`
+	Uncomment TasksUncommentCmd `cmd:"" help:"Delete a comment from a task"`
+	Search    TasksSearchCmd    `cmd:"" help:"Search for tasks"`
 }
 
 type TasksListCmd struct {
@@ -244,6 +245,30 @@ func (c *TasksCommentCmd) Run(client *api.Client) error {
 	fmt.Printf("Comment added successfully (ID: %s)\n", story.GID)
 	fmt.Printf("Created at: %s\n", story.CreatedAt)
 
+	return nil
+}
+
+type TasksUncommentCmd struct {
+	StoryGID string `arg:"" help:"Comment/story GID to delete"`
+	Force    bool   `short:"f" help:"Skip confirmation"`
+}
+
+func (c *TasksUncommentCmd) Run(client *api.Client) error {
+	if !c.Force {
+		fmt.Printf("Are you sure you want to delete comment %s? [y/N] ", c.StoryGID)
+		var response string
+		fmt.Scanln(&response)
+		if response != "y" && response != "Y" {
+			fmt.Println("Cancelled.")
+			return nil
+		}
+	}
+
+	if err := client.DeleteStory(c.StoryGID); err != nil {
+		return err
+	}
+
+	fmt.Printf("Comment %s deleted.\n", c.StoryGID)
 	return nil
 }
 

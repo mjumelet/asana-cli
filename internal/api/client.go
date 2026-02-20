@@ -334,6 +334,13 @@ func (c *Client) AddComment(taskGID, comment string, isHTML bool) (*Story, error
 	return &resp.Data, nil
 }
 
+// DeleteStory deletes a comment (story) from a task
+func (c *Client) DeleteStory(storyGID string) error {
+	endpoint := fmt.Sprintf("/stories/%s", storyGID)
+	_, err := c.doRequest("DELETE", endpoint, nil)
+	return err
+}
+
 // GetTaskStories returns all stories (comments and activity) for a task
 func (c *Client) GetTaskStories(taskGID string) ([]Story, error) {
 	params := url.Values{}
