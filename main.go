@@ -17,11 +17,12 @@ var CLI struct {
 	Config string `short:"c" help:"Path to config file (.env format)" type:"path"`
 
 	// Commands
-	Tasks     cmd.TasksCmd    `cmd:"" help:"Manage tasks"`
-	Projects  cmd.ProjectsCmd `cmd:"" help:"Manage projects"`
-	Users     cmd.UsersCmd    `cmd:"" help:"Manage users"`
-	Summary   cmd.SummaryCmd  `cmd:"" help:"Show task summary and statistics"`
-	Configure ConfigureCmd    `cmd:"" help:"Show configuration help"`
+	Tasks       cmd.TasksCmd       `cmd:"" help:"Manage tasks"`
+	Projects    cmd.ProjectsCmd    `cmd:"" help:"Manage projects"`
+	Users       cmd.UsersCmd       `cmd:"" help:"Manage users"`
+	Attachments cmd.AttachmentsCmd `cmd:"" help:"Manage attachments"`
+	Summary     cmd.SummaryCmd     `cmd:"" help:"Show task summary and statistics"`
+	Configure   ConfigureCmd       `cmd:"" help:"Show configuration help"`
 }
 
 type ConfigureCmd struct{}

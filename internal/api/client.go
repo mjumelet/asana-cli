@@ -1,11 +1,15 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -612,4 +616,172 @@ func (c *Client) GetTaskSummary(projectGID string) (*TaskSummary, error) {
 	}
 
 	return summary, nil
+}
+
+// Attachment represents an Asana attachment
+type Attachment struct {
+	GID             string  `json:"gid"`
+	Name            string  `json:"name"`
+	ResourceSubtype string  `json:"resource_subtype,omitempty"`
+	CreatedAt       string  `json:"created_at,omitempty"`
+	DownloadURL     string  `json:"download_url,omitempty"`
+	PermanentURL    string  `json:"permanent_url,omitempty"`
+	ViewURL         string  `json:"view_url,omitempty"`
+	Host            string  `json:"host,omitempty"`
+	Size            int64   `json:"size,omitempty"`
+	Parent          *Entity `json:"parent,omitempty"`
+}
+
+type AttachmentResponse struct {
+	Data Attachment `json:"data"`
+}
+
+type AttachmentsResponse struct {
+	Data []Attachment `json:"data"`
+}
+
+// ListAttachments returns attachments on a task
+func (c *Client) ListAttachments(taskGID string) ([]Attachment, error) {
+	params := url.Values{}
+	params.Set("opt_fields", "gid,name,resource_subtype,created_at,host,size")
+
+	endpoint := fmt.Sprintf("/tasks/%s/attachments?%s", taskGID, params.Encode())
+	body, err := c.doRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp AttachmentsResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
+// GetAttachment returns a single attachment by GID
+func (c *Client) GetAttachment(attachmentGID string) (*Attachment, error) {
+	params := url.Values{}
+	params.Set("opt_fields", "gid,name,resource_subtype,created_at,download_url,permanent_url,view_url,host,size,parent,parent.name")
+
+	endpoint := fmt.Sprintf("/attachments/%s?%s", attachmentGID, params.Encode())
+	body, err := c.doRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp AttachmentResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return &resp.Data, nil
+}
+
+// doMultipartRequest sends a multipart/form-data request with a file upload
+func (c *Client) doMultipartRequest(endpoint, filePath string) ([]byte, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("opening file: %w", err)
+	}
+	defer file.Close()
+
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	if err != nil {
+		return nil, fmt.Errorf("creating form file: %w", err)
+	}
+
+	if _, err := io.Copy(part, file); err != nil {
+		return nil, fmt.Errorf("copying file data: %w", err)
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("closing multipart writer: %w", err)
+	}
+
+	reqURL := baseURL + endpoint
+	req, err := http.NewRequest("POST", reqURL, &buf)
+	if err != nil {
+		return nil, fmt.Errorf("creating request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("executing request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading response: %w", err)
+	}
+
+	if resp.StatusCode >= 400 {
+		var errResp ErrorResponse
+		if err := json.Unmarshal(respBody, &errResp); err == nil && len(errResp.Errors) > 0 {
+			return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, errResp.Errors[0].Message)
+		}
+		return nil, fmt.Errorf("API error (%d): %s", resp.StatusCode, string(respBody))
+	}
+
+	return respBody, nil
+}
+
+// UploadAttachment uploads a file to a task
+func (c *Client) UploadAttachment(taskGID, filePath string) (*Attachment, error) {
+	endpoint := fmt.Sprintf("/tasks/%s/attachments", taskGID)
+	body, err := c.doMultipartRequest(endpoint, filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp AttachmentResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return &resp.Data, nil
+}
+
+// DownloadAttachment downloads an attachment file to disk
+func (c *Client) DownloadAttachment(attachment *Attachment, destPath string) error {
+	if attachment.DownloadURL == "" {
+		return fmt.Errorf("attachment has no download URL")
+	}
+
+	resp, err := c.httpClient.Get(attachment.DownloadURL)
+	if err != nil {
+		return fmt.Errorf("downloading file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("download failed with status %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(destPath)
+	if err != nil {
+		return fmt.Errorf("creating file: %w", err)
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, resp.Body); err != nil {
+		return fmt.Errorf("writing file: %w", err)
+	}
+
+	return nil
+}
+
+// DeleteAttachment deletes an attachment
+func (c *Client) DeleteAttachment(attachmentGID string) error {
+	endpoint := fmt.Sprintf("/attachments/%s", attachmentGID)
+	_, err := c.doRequest("DELETE", endpoint, nil)
+	return err
 }
