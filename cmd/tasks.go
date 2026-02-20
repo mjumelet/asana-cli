@@ -123,14 +123,24 @@ func (c *TasksGetCmd) Run(client *api.Client) error {
 		}
 	}
 
+	// Fetch attachments
+	attachments, err := client.ListAttachments(c.TaskGID)
+	if err != nil {
+		return err
+	}
+
 	if c.JSON {
 		if c.Comments {
 			return printJSON(map[string]interface{}{
-				"task":     task,
-				"comments": stories,
+				"task":        task,
+				"comments":    stories,
+				"attachments": attachments,
 			})
 		}
-		return printJSON(task)
+		return printJSON(map[string]interface{}{
+			"task":        task,
+			"attachments": attachments,
+		})
 	}
 
 	fmt.Printf("Task: %s\n", task.Name)
@@ -174,6 +184,18 @@ func (c *TasksGetCmd) Run(client *api.Client) error {
 
 	if task.Notes != "" {
 		fmt.Printf("\nDescription:\n%s\n", task.Notes)
+	}
+
+	// Display attachments
+	if len(attachments) > 0 {
+		fmt.Printf("\nAttachments (%d):\n", len(attachments))
+		for _, a := range attachments {
+			size := ""
+			if a.Size > 0 {
+				size = fmt.Sprintf(" (%s)", formatSize(a.Size))
+			}
+			fmt.Printf("  - %s%s [%s]\n", a.Name, size, a.GID)
+		}
 	}
 
 	// Display comments/activity

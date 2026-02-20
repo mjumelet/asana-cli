@@ -67,6 +67,14 @@ Uses Personal Access Token via `Authorization: Bearer <token>` header.
 | GET | `/tags/{tag_gid}` | Get tag details |
 | POST | `/workspaces/{workspace_gid}/tags` | Create a tag |
 
+#### Attachments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/tasks/{task_gid}/attachments` | List attachments on a task |
+| GET | `/attachments/{attachment_gid}` | Get attachment details |
+| POST | `/tasks/{task_gid}/attachments` | Upload a file (multipart/form-data) |
+| DELETE | `/attachments/{attachment_gid}` | Delete an attachment |
+
 #### Sections
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -117,6 +125,12 @@ This CLI is designed to be used by LLM agents for task automation:
    - `asana projects list` - Browse projects
    - `asana projects get` - Project details with task counts
 
-4. **User Management**
+4. **Attachments**
+   - `asana attachments list <task_gid>` - List attachments on a task
+   - `asana attachments upload <task_gid> <file>` - Upload a file to a task
+   - `asana attachments download <attachment_gid>` - Download an attachment
+   - `asana attachments delete <attachment_gid>` - Delete an attachment
+
+5. **User Management**
    - `asana users list` - List team members
    - `asana users me` - Current user info

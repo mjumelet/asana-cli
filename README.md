@@ -10,6 +10,7 @@ asana-cli provides a simple way to interact with Asana from your terminal. List 
 
 - **Task Management** - Create, update, complete, and delete tasks
 - **Comments** - Add plain text or rich HTML comments to tasks
+- **Attachments** - Upload, download, list, and delete file attachments
 - **Projects** - Browse and filter projects in your workspace
 - **Users** - List workspace members and get user info
 - **Reporting** - Task summaries with statistics by assignee
@@ -322,6 +323,126 @@ asana tasks search "documentation" -l 20
 
 # Search and output as JSON
 asana tasks search "urgent" -j
+```
+
+### attachments list
+
+List attachments on a task.
+
+```bash
+asana attachments list <task-gid> [flags]
+```
+
+**Flags:**
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `-j, --json` | Output as JSON | `asana attachments list 123 -j` |
+
+**Examples:**
+
+```bash
+# List all attachments on a task
+asana attachments list 1234567890123456
+
+# List as JSON
+asana attachments list 1234567890123456 -j
+```
+
+### attachments get
+
+Get detailed information about an attachment.
+
+```bash
+asana attachments get <attachment-gid> [flags]
+```
+
+**Flags:**
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `-j, --json` | Output as JSON | `asana attachments get 123 -j` |
+
+**Examples:**
+
+```bash
+# Get attachment details (includes download URL)
+asana attachments get 1234567890123456
+
+# Get as JSON
+asana attachments get 1234567890123456 -j
+```
+
+### attachments upload
+
+Upload a file to a task.
+
+```bash
+asana attachments upload <task-gid> <file-path> [flags]
+```
+
+**Flags:**
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `-j, --json` | Output as JSON | `asana attachments upload 123 ./file.pdf -j` |
+
+**Examples:**
+
+```bash
+# Upload a file to a task
+asana attachments upload 1234567890123456 ./report.pdf
+
+# Upload and get JSON response
+asana attachments upload 1234567890123456 ./screenshot.png -j
+```
+
+### attachments download
+
+Download an attachment to disk.
+
+```bash
+asana attachments download <attachment-gid> [flags]
+```
+
+**Flags:**
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `-o, --output` | Output file path (defaults to current dir with attachment name) | `asana attachments download 123 -o ./downloads/file.pdf` |
+
+**Examples:**
+
+```bash
+# Download to current directory
+asana attachments download 1234567890123456
+
+# Download to specific path
+asana attachments download 1234567890123456 -o ~/Downloads/report.pdf
+```
+
+### attachments delete
+
+Delete an attachment.
+
+```bash
+asana attachments delete <attachment-gid> [flags]
+```
+
+**Flags:**
+
+| Flag | Description | Example |
+|------|-------------|---------|
+| `-f, --force` | Skip confirmation prompt | `asana attachments delete 123 -f` |
+
+**Examples:**
+
+```bash
+# Delete with confirmation
+asana attachments delete 1234567890123456
+
+# Delete without confirmation
+asana attachments delete 1234567890123456 -f
 ```
 
 ### projects list
