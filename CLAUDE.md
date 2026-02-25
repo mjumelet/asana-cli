@@ -113,9 +113,11 @@ This CLI is designed to be used by LLM agents for task automation:
 
 1. **Task Management**
    - `asana tasks create` - Create tasks with natural language
+   - `asana tasks create --notes "<body>...</body>" --html` - Create with rich text description
    - `asana tasks complete` - Mark tasks done
    - `asana tasks assign` - Reassign tasks
    - `asana tasks update` - Modify task details
+   - `asana tasks update --notes "<body>...</body>" --html` - Update with rich text description
 
 2. **Reporting**
    - `asana summary` - Task counts by assignee/status

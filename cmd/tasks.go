@@ -343,7 +343,8 @@ func truncate(s string, maxLen int) string {
 // TasksCreateCmd creates a new task
 type TasksCreateCmd struct {
 	Name     string   `arg:"" help:"Task name"`
-	Notes    string   `short:"n" help:"Task description"`
+	Notes    string   `short:"n" help:"Task description (plain text, or HTML with --html)"`
+	HTML     bool     `help:"Treat notes as HTML rich text"`
 	Assignee string   `short:"a" help:"Assignee GID or 'me'"`
 	Due      string   `short:"d" help:"Due date (YYYY-MM-DD)"`
 	Project  string   `short:"p" help:"Project GID to add task to"`
@@ -353,9 +354,18 @@ type TasksCreateCmd struct {
 func (c *TasksCreateCmd) Run(client *api.Client) error {
 	opts := api.CreateTaskOptions{
 		Name:     c.Name,
-		Notes:    c.Notes,
 		Assignee: c.Assignee,
 		DueOn:    c.Due,
+	}
+
+	if c.HTML && c.Notes != "" {
+		notes := c.Notes
+		if !strings.Contains(notes, "<body>") {
+			notes = "<body>" + notes + "</body>"
+		}
+		opts.HTMLNotes = notes
+	} else {
+		opts.Notes = c.Notes
 	}
 
 	if c.Project != "" {
@@ -415,7 +425,8 @@ func (c *TasksReopenCmd) Run(client *api.Client) error {
 type TasksUpdateCmd struct {
 	TaskGID  string `arg:"" help:"Task GID to update"`
 	Name     string `short:"n" help:"New task name"`
-	Notes    string `help:"New task description"`
+	Notes    string `help:"New task description (plain text, or HTML with --html)"`
+	HTML     bool   `help:"Treat notes as HTML rich text"`
 	Assignee string `short:"a" help:"New assignee GID or 'me'"`
 	Due      string `short:"d" help:"New due date (YYYY-MM-DD)"`
 	JSON     bool   `short:"j" help:"Output as JSON"`
@@ -428,7 +439,15 @@ func (c *TasksUpdateCmd) Run(client *api.Client) error {
 		opts.Name = &c.Name
 	}
 	if c.Notes != "" {
-		opts.Notes = &c.Notes
+		if c.HTML {
+			notes := c.Notes
+			if !strings.Contains(notes, "<body>") {
+				notes = "<body>" + notes + "</body>"
+			}
+			opts.HTMLNotes = &notes
+		} else {
+			opts.Notes = &c.Notes
+		}
 	}
 	if c.Assignee != "" {
 		opts.Assignee = &c.Assignee

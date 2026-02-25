@@ -391,6 +391,7 @@ func (c *Client) ListProjects(archived bool, limit int) ([]Project, error) {
 type CreateTaskOptions struct {
 	Name      string
 	Notes     string
+	HTMLNotes string // Rich text description (HTML)
 	Assignee  string
 	DueOn     string
 	Projects  []string
@@ -404,7 +405,9 @@ func (c *Client) CreateTask(opts CreateTaskOptions) (*Task, error) {
 		"name": opts.Name,
 	}
 
-	if opts.Notes != "" {
+	if opts.HTMLNotes != "" {
+		data["html_notes"] = opts.HTMLNotes
+	} else if opts.Notes != "" {
 		data["notes"] = opts.Notes
 	}
 	if opts.Assignee != "" {
@@ -451,6 +454,7 @@ func (c *Client) CreateTask(opts CreateTaskOptions) (*Task, error) {
 type UpdateTaskOptions struct {
 	Name      *string
 	Notes     *string
+	HTMLNotes *string // Rich text description (HTML)
 	Assignee  *string
 	DueOn     *string
 	Completed *bool
@@ -463,7 +467,9 @@ func (c *Client) UpdateTask(taskGID string, opts UpdateTaskOptions) (*Task, erro
 	if opts.Name != nil {
 		data["name"] = *opts.Name
 	}
-	if opts.Notes != nil {
+	if opts.HTMLNotes != nil {
+		data["html_notes"] = *opts.HTMLNotes
+	} else if opts.Notes != nil {
 		data["notes"] = *opts.Notes
 	}
 	if opts.Assignee != nil {

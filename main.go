@@ -10,7 +10,7 @@ import (
 	"github.com/mauricejumelet/asana-cli/internal/config"
 )
 
-var version = "1.2.1"
+var version = "1.3.0"
 
 var CLI struct {
 	// Global flags
