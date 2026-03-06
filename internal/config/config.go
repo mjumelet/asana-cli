@@ -44,11 +44,11 @@ func Load(configFile string) (*Config, error) {
 			return nil, fmt.Errorf("failed to load config file %s: %w", configFile, err)
 		}
 	} else {
-		// Try default locations in order (first found wins)
+		// Try all default locations (godotenv.Load won't overwrite existing vars,
+		// so earlier files take precedence)
 		for _, loc := range ConfigLocations() {
 			if _, err := os.Stat(loc); err == nil {
 				_ = godotenv.Load(loc)
-				break
 			}
 		}
 	}
